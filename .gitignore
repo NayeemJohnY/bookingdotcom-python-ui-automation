@@ -1,5 +1,4 @@
 venv/
-tests/e2e/test_homepage.py
 **/__pycache__/
 .vscode/
 test-results/
