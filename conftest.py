@@ -9,12 +9,9 @@ def driver():
     """Get Driver Fixture"""
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
-    d = webdriver.Chrome(chrome_options)
-    yield d
-    d.quit()
-
-
-@pytest.fixture(scope="module", autouse=True)
-def load_url(driver):
-    "Load URL"
-    driver.get("https://www.booking.com/")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--incognito")
+    driver_instance = webdriver.Chrome(options=chrome_options)
+    driver_instance.get("https://www.booking.com/")
+    yield driver_instance
+    driver_instance.quit()
