@@ -6,22 +6,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: 
+    container:
       image: selenium/standalone-chrome
       options: --user root
-  
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v3
+    steps:
+      - name: Checkout the repository source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
 
       - name: Install Dependencies
-        run: pip install -r requirement.txt --upgrade
+        run: pip install -r requirements.txt --upgrade
 
       - name: Test Execution
         run: pytest --html=test-results/report.html
 
-      - uses: actions/upload-artifact@v4.6.2
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: test-results
           path: test-results
