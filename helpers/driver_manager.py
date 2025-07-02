@@ -7,6 +7,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 
 logger = logging.getLogger(__name__)
 
@@ -161,3 +164,97 @@ class WebDriverOps:
         element.clear()
         element.send_keys(value)
         logger.info("Entered text %s in the %s", value, elem_name)
+
+    def select_value_from_dropdown(self, locator, value, elem_name: str, replace_value=None, wait_time=None):
+        """Select value from Dropdown
+
+        Args:
+            locator (tuple): tuple with locator type and locator string.
+            value (str): dropdown value to be selected
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        """
+        locator, elem_name = self.get_element_name_locator(
+            locator, elem_name, replace_value)
+        select = Select(self._visibility_of_element(
+            locator, elem_name, wait_time))
+        select.select_by_value((str)(value))
+        logger.info("Selected %s dropdown by value %s", elem_name, value)
+
+    def execute_js_script_on_element(self, script, locator, elem_name: str, replace_value=None, wait_time=None):
+        """Move a element by offset
+
+        Args:
+            locator (tuple): tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        """
+        locator, elem_name = self.get_element_name_locator(
+            locator, elem_name, replace_value)
+        ele_wait = WebDriverWait(
+            self.driver, wait_time) if wait_time else self.wait
+        ele = ele_wait.until(EC.presence_of_element_located(
+            locator), self.wait_msg.format(elem_name, locator))
+        value = self.driver.execute_script(script, ele)
+        logger.info(
+            "Executed JS Script on Element %s on returned value %s", elem_name, value)
+        return value
+
+    def click_on_element_by_offset(self, locator, elem_name: str, xoffset=0, yoffset=0, replace_value=None, wait_time=None):
+        """Move to element by offset and then click
+
+        Args:
+            locator (tuple): tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            xoffset: X offset to move to, as a positive or negative integer.
+            yoffset: Y offset to move to, as a positive or negative integer.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        """
+        locator, elem_name = self.get_element_name_locator(
+            locator, elem_name, replace_value)
+        actions = ActionChains(self.driver)
+        ele = self._visibility_of_element(locator, elem_name, wait_time)
+        actions.move_to_element_with_offset(
+            ele, xoffset, yoffset).click().perform()
+        logger.info("Moved & Cliked on Element %s by offset %s",
+                    elem_name, [xoffset, yoffset])
+
+    def get_number_of_elements(self, locator: tuple, elem_name: str, replace_value=None, wait_time=None):
+        """To get Number of webelements
+
+        Args:
+            locator (tuple): tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        
+        Returns
+            int : Number of webelements
+        """
+        locator, elem_name = self.get_element_name_locator(
+            locator, elem_name, replace_value)
+        ele_wait = WebDriverWait(
+            self.driver, wait_time) if wait_time else self.wait
+        elements = ele_wait.until(
+            EC.visibility_of_all_elements_located(locator), self.wait_msg.format(elem_name, locator))
+        return len(elements)
+    
+    def get_element_text(self, locator: tuple, elem_name: str, replace_value=None, wait_time=None):
+        """To get element text
+
+        Args:
+            locator (tuple): tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        
+        Returns
+            str : Element text string
+        """
+        locator, elem_name = self.get_element_name_locator(
+            locator, elem_name, replace_value)
+        ele = self._visibility_of_element(locator, elem_name, wait_time)
+        return ele.text or ele.get_attribute('textContent')

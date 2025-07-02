@@ -1,5 +1,6 @@
 
 from datetime import datetime
+import re
 
 
 def format_datetime(datetime_obj: datetime, format_pattern="%Y-%m-%d"):
@@ -26,3 +27,15 @@ def parse_datetime(datetime_str: str, format_pattern="%Y-%m-%d"):
         datetimestr: datetime object
     """
     return datetime.strptime(datetime_str, format_pattern)
+
+
+def get_number_from_text(text):
+    """Get only Number from text
+
+    Args:
+        text (str): Text String
+
+    Returns:
+        int: Number from text 
+    """    
+    return int(re.sub("[^0-9]", "", text))

@@ -27,3 +27,6 @@ occupany_group_detail_value = (
 
 occupany_group_detail_button_disabled = (
     By.XPATH, occupany_group_detail_button[1] + '[@disabled]')
+
+kids_age_select_dropdown_with_index = (
+    By.XPATH, '//*[@data-testid="kids-ages"]/descendant::*[@name="age"][{}]')

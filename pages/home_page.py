@@ -7,11 +7,12 @@ from helpers import utils
 from helpers.driver_manager import WebDriverOps
 from locators.common_locators import *
 from locators.home_page_locators import *
+from pages.search_results_page import SearchResultsPage
 
 OCCUPANCY_LIMITS = {
-    'adults': {"min": 1, "max": 30},
-    'children': {"min": 0, "max": 10},
-    "rooms": {"min": 1, "max": 30}
+    'adults': {"min": 1, "max": 30, "default": 2},
+    'children': {"min": 0, "max": 10, "default": 0},
+    "rooms": {"min": 1, "max": 30, "default": 1}
 }
 
 
@@ -28,8 +29,11 @@ class HomePage:
             generic_text_locator, "Register link", True, "Register")
         self.webdriver_ops.is_element_present(
             generic_text_locator, "Sign in link", True, "Sign in")
+        self.handle_sign_in_popup()
+
+    def handle_sign_in_popup(self):
         if self.webdriver_ops.is_element_present(
-                dismiss_sign_in_popup_button, "Dismiss Sign in Pop up close Icon", wait_time=10):
+                dismiss_sign_in_popup_button, "Dismiss Sign in Pop up close Icon", wait_time=5):
             self.webdriver_ops.click(
                 dismiss_sign_in_popup_button, "Dismiss Sign in Pop up close Icon")
 
@@ -52,6 +56,8 @@ class HomePage:
             destination_selected_value, 'Selected Destination', search_request['destination'])
         self.select_check_in_out_date(search_request)
         self.fill_occupancy_detail(search_request)
+        self.handle_sign_in_popup()
+        return SearchResultsPage(self.webdriver_ops)
 
     def select_check_in_out_date(self, search_request):
         """Select Check in Out date and verify selected date
@@ -90,16 +96,37 @@ class HomePage:
             date_display_field, 'Selected Check In date', ['start', check_in_str])
         self.webdriver_ops.wait_for_element_to_be_visible(
             date_display_field, 'Selected Check out date', ['end',  check_out_str])
-
+        
+        days = (check_out_date - check_in_date).days
+        search_request['x_nights'] = days
+        
     def fill_occupancy_detail(self, search_request):
         """Fill Occupancy detail
 
         Args:
             search_request (dict):  Search request dictionary
         """
+        adults = search_request.get("adults", 1)
+        children = search_request.get('children', 0)
         self.open_occpancy_config()
-        self.update_occupant_detail("adults", search_request.get("adults", 1))
+        self.update_occupant_detail("adults", adults)
+        self.update_occupant_detail("children", children)
+        self.update_children_age(search_request.get("children_ages", None))
         self.update_occupant_detail("rooms", search_request.get("rooms", 1))
+        # region build duration member info
+        parts = []
+        x_nights = search_request['x_nights']
+        if x_nights % 7 == 0:
+            weeks = x_nights // 7
+            parts.append(f"{weeks} week" if weeks == 1 else f"{weeks} weeks")
+        
+        parts.append(f"{adults} adult" if adults == 1 else f"{adults} adults")
+        
+        if children:
+            parts.append(f"{children} child" if children == 1 else f"{children} children")
+        
+        search_request['duration_and_members'] = ', '.join(parts)
+        # endregion
         self.webdriver_ops.click(generic_text_locator,
                                  "Search Button", "Search")
 
@@ -121,16 +148,19 @@ class HomePage:
             raise ValueError(
                 f"{occupant_entity} count cannot be greater than {occupancy_limit['min']}")
 
-        while not self.webdriver_ops.is_element_present(
-            occupany_group_detail_value, "occupant entity count",
-                replace_value=[occupant_entity, occupant_count], wait_time=5):
-
-            if occupant_count == 1:
+        counter = abs(occupant_count - occupancy_limit['default'])
+        while counter != 0:
+            if occupant_count < occupancy_limit['default']:
                 self.webdriver_ops.click(
                     occupany_group_detail_button, "Decrease count button", [occupant_entity, 1])
-            elif occupant_count > 2:
+            elif occupant_count > occupancy_limit['default']:
                 self.webdriver_ops.click(
                     occupany_group_detail_button, "Increase count button", [occupant_entity, 2])
+            if self.webdriver_ops.is_element_present(
+                    occupany_group_detail_value, "occupant entity count",
+                    replace_value=[occupant_entity, occupant_count], wait_time=2):
+                break
+            counter -= 1
 
         if occupant_count == occupancy_limit['min']:
             self.open_occpancy_config()
@@ -141,11 +171,20 @@ class HomePage:
             self.webdriver_ops.wait_for_element_to_be_visible(
                 occupany_group_detail_button_disabled, "Disabled Increase count button", [occupant_entity, 2])
 
+    def update_children_age(self, children_ages):
+        if children_ages:
+            for i, age in enumerate(children_ages):
+                if age > 17:
+                    raise ValueError(
+                        "children age cannot be be greather than 17")
+                self.webdriver_ops.select_value_from_dropdown(
+                    kids_age_select_dropdown_with_index, age, "Age Needed", i+1)
+
     def open_occpancy_config(self):
         """Open Occupancy Config"""
-        locator = generic_attribute_locator[0], generic_attribute_locator[1] + \
+        locator = data_testid_locator[0], data_testid_locator[1] + \
             '[@aria-expanded="false"]'
         if self.webdriver_ops.is_element_present(
-                locator, "Number of travelers button", replace_value=["data-testid", "occupancy-config"], wait_time=1):
+                locator, "Number of travelers button", replace_value="occupancy-config", wait_time=1):
             self.webdriver_ops.click(
-                generic_attribute_locator, "Number of travelers button", ["data-testid", "occupancy-config"])
+                data_testid_locator, "Number of travelers button", "occupancy-config")
