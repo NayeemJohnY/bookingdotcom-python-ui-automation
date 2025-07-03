@@ -1,7 +1,13 @@
 """Conftest.py for driver manager and other fixtures"""
+import traceback
 import pytest
-
+import os
+from datetime import datetime
 from helpers.driver_manager import get_driver
+import logging
+
+SCREENSHOTS_LOCATIONS = "test_results/screenshots"
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")
@@ -22,7 +28,7 @@ def driver(browser_config: dict):  # pylint:disable=W0621
     """Provides a WebDriverManager instance and ensures the browser is quit after use."""
     driver_instance = get_driver(**browser_config)
     yield driver_instance
-    # driver_instance.quit()
+    driver_instance.quit()
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -35,6 +41,34 @@ def app_url(request):
 def timeout(request):
     """Default Timeout"""
     return request.config.getini("timeout")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    # Only on failure
+    if report.when == "call" and report.failed:
+        driver = item.funcargs.get("driver")
+        test_name = item.name
+        time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        pytest_html = item.config.pluginmanager.getplugin('html')
+        report.extras = getattr(report, 'extras', [])
+        if driver:
+            try:
+                os.makedirs(SCREENSHOTS_LOCATIONS, exist_ok=True)
+                screenshot_path = f"{SCREENSHOTS_LOCATIONS}/{test_name}_{time_stamp}.png"
+                driver.save_screenshot(screenshot_path)
+                logger.info("Screenshot saved at Location : %s",
+                            screenshot_path)
+                # Attach screenshot to report
+                report.extras.append(pytest_html.extras.image(screenshot_path))
+            except Exception as e:
+                logger.error("Error capturing screenshot for '%s' : %s",
+                             test_name, e, exc_info=True)
+        logger.error(
+            "%s occurred at test [%s]", call.excinfo.typename, test_name,
+            exc_info=(call.excinfo.type, call.excinfo.value, call.excinfo.tb))
 
 
 def pytest_addoption(parser: pytest.Parser):

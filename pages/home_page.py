@@ -29,13 +29,6 @@ class HomePage:
             generic_text_locator, "Register link", True, "Register")
         self.webdriver_ops.is_element_present(
             generic_text_locator, "Sign in link", True, "Sign in")
-        self.handle_sign_in_popup()
-
-    def handle_sign_in_popup(self):
-        if self.webdriver_ops.is_element_present(
-                dismiss_sign_in_popup_button, "Dismiss Sign in Pop up close Icon", wait_time=5):
-            self.webdriver_ops.click(
-                dismiss_sign_in_popup_button, "Dismiss Sign in Pop up close Icon")
 
     def search_hotels(self, search_request: dict):
         """Search Hotels
@@ -43,7 +36,7 @@ class HomePage:
         Args:
             search_request (dict): Search request dictionary
         """
-        self.webdriver_ops.type_value(
+        self.webdriver_ops.enter_text(
             generic_attribute_locator, search_request['dest_search'], "Destination",
             ["placeholder", "Where are you going?"])
         if self.webdriver_ops.is_element_present(
@@ -56,7 +49,6 @@ class HomePage:
             destination_selected_value, 'Selected Destination', search_request['destination'])
         self.select_check_in_out_date(search_request)
         self.fill_occupancy_detail(search_request)
-        self.handle_sign_in_popup()
         return SearchResultsPage(self.webdriver_ops)
 
     def select_check_in_out_date(self, search_request):
@@ -158,7 +150,7 @@ class HomePage:
                     occupany_group_detail_button, "Increase count button", [occupant_entity, 2])
             if self.webdriver_ops.is_element_present(
                     occupany_group_detail_value, "occupant entity count",
-                    replace_value=[occupant_entity, occupant_count], wait_time=2):
+                    replace_value=[occupant_entity, occupant_count], wait_time=1):
                 break
             counter -= 1
 

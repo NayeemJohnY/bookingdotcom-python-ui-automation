@@ -28,7 +28,7 @@ class SearchResultsPage:
                     'return arguments[0].value', price_slider_input_range, 'Min Sider Input Range', 1))
                 slider_max_value = int(self.webdriver_ops.execute_js_script_on_element(
                     'return arguments[0].value', price_slider_input_range, 'Max Sider Input Range', 2))
-                if value != slider_max_value:
+                if value < slider_max_value:
                     offset = round(slider_width * (value - slider_min_value) /
                                    (slider_max_value - slider_min_value))
                     offset_from_center = offset - slider_width // 2
