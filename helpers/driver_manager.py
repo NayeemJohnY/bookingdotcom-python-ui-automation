@@ -4,7 +4,6 @@ from typing import Tuple, List, Union
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
@@ -18,20 +17,41 @@ from selenium.webdriver.common.by import By
 logger = logging.getLogger(__name__)
 
 
+def add_chromium_options(options, width, height, headless):
+    options.add_argument("--start-maximized")
+    if headless:
+        options.add_argument(f"--window-size={width},{height}")
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+
 def get_driver(browser="chrome", headless=None):
     """To create and get webdriver"""
     driver = None
+    browser = browser.lower()
+    width, height = 1920, 1080
+
     if browser == "chrome":
-        chrome_options = Options()
-        chrome_options.add_argument("--start-maximized")
-        chrome_options.add_argument("--incognito")
-        chrome_options.add_argument("--window-size=1920,1080") 
-        if headless:
-            chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options = webdriver.ChromeOptions()
+        add_chromium_options(chrome_options, width, height, headless)
         driver = webdriver.Chrome(options=chrome_options)
+
+    elif browser == "edge":
+        edge_options = webdriver.EdgeOptions()
+        add_chromium_options(edge_options, width, height, headless)
+        driver = webdriver.Edge(options=edge_options)
+
+    elif browser == "firefox":
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.add_argument("--start-maximized")
+        if headless:
+            firefox_options.add_argument(f"--width={width}")
+            firefox_options.add_argument(f"--height={height}")
+            firefox_options.headless = True
+        driver = webdriver.Firefox(options=firefox_options)
+
     else:
         raise ValueError("Unsupported browser name " + browser)
     return driver
@@ -67,7 +87,7 @@ class WebDriverOps:
     def handle_sign_in_popup(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            
+
             if not getattr(self, "_sign_in_popup_dismissed", False) and self.is_element_present(
                     dismiss_sign_in_popup_button, "Sign in Pop up dismiss Icon", wait_time=1):
                 element = self._wait_for_element_condition(
