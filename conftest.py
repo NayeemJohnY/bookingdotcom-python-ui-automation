@@ -1,12 +1,10 @@
 """Conftest.py for driver manager and other fixtures"""
-import traceback
 import pytest
-import os
-from datetime import datetime
-from helpers.driver_manager import get_driver
+from helpers.driver_manager import get_driver, capture_screenshot
 import logging
+import pytest_html.extras
 
-SCREENSHOTS_LOCATIONS = "test_results/screenshots"
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +18,10 @@ def browser_config(request):
     headless = request.config.getoption("--headless")
     if not headless:
         headless = request.config.getini("headless")
-    return {"browser": browser, "headless": headless}
+
+    grid_url = request.config.getoption("--grid-url")
+
+    return {"browser": browser, "headless": headless, "grid_url": grid_url}
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -51,23 +52,19 @@ def pytest_runtest_makereport(item, call):
     if report.when == "call" and report.failed:
         driver = item.funcargs.get("driver")
         test_name = item.name
-        time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        pytest_html = item.config.pluginmanager.getplugin('html')
+
         report.extras = getattr(report, 'extras', [])
         if driver:
             try:
-                os.makedirs(SCREENSHOTS_LOCATIONS, exist_ok=True)
-                screenshot_path = f"{SCREENSHOTS_LOCATIONS}/{test_name}_{time_stamp}.png"
-                driver.save_screenshot(screenshot_path)
-                logger.info("Screenshot saved at Location : %s",
-                            screenshot_path)
-                # Attach screenshot to report
-                report.extras.append(pytest_html.extras.image(screenshot_path))
+                screenshot_base64 = capture_screenshot(driver, test_name)
+                img_data = f"data:image/png;base64,{screenshot_base64}"
+                report.extras.append(
+                    pytest_html.extras.image(img_data, name=test_name))
             except Exception as e:
                 logger.error("Error capturing screenshot for '%s' : %s",
                              test_name, e, exc_info=True)
         logger.error(
-            "%s occurred at test [%s]", call.excinfo.typename, test_name,
+            "%s occurred at test: %s", call.excinfo.typename, test_name,
             exc_info=(call.excinfo.type, call.excinfo.value, call.excinfo.tb))
 
 
@@ -77,6 +74,7 @@ def pytest_addoption(parser: pytest.Parser):
                      help="Specify the browser to run tests on: chrome, firefox, or edge.")
     parser.addoption("--headless", action="store_true",
                      help="Set Headless Mode")
+    parser.addoption("--grid-url", type=str, help="Selenim Grid Hub URL")
     parser.addini(
         "browser", type='string', help="Specify the browser to run tests on", default="chrome")
     parser.addini(

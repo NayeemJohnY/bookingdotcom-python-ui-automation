@@ -1,7 +1,7 @@
 """WebDriver Manager with Manage browser instance and manage actions on browser"""
 import logging
 from typing import Tuple, List, Union
-
+import os
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -13,48 +13,107 @@ from selenium.webdriver.common.action_chains import ActionChains
 from locators.home_page_locators import dismiss_sign_in_popup_button
 import functools
 from selenium.webdriver.common.by import By
+from datetime import datetime
+import base64
 
 logger = logging.getLogger(__name__)
 
+SCREENSHOTS_DIR = os.path.join('test_results', 'screenshots')
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
 
 def add_chromium_options(options, width, height, headless):
-    options.add_argument("--start-maximized")
     if headless:
         options.add_argument(f"--window-size={width},{height}")
         options.add_argument("--headless=new")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+    else:
+        options.add_argument("--start-maximized")
 
 
-def get_driver(browser="chrome", headless=None):
+def get_driver(browser="chrome", headless=None, grid_url=None):
     """To create and get webdriver"""
     driver = None
     browser = browser.lower()
     width, height = 1920, 1080
 
     if browser == "chrome":
-        chrome_options = webdriver.ChromeOptions()
-        add_chromium_options(chrome_options, width, height, headless)
-        driver = webdriver.Chrome(options=chrome_options)
+        options = webdriver.ChromeOptions()
+        add_chromium_options(options, width, height, headless)
 
     elif browser == "edge":
-        edge_options = webdriver.EdgeOptions()
-        add_chromium_options(edge_options, width, height, headless)
-        driver = webdriver.Edge(options=edge_options)
+        options = webdriver.EdgeOptions()
+        add_chromium_options(options, width, height, headless)
 
     elif browser == "firefox":
-        firefox_options = webdriver.FirefoxOptions()
-        firefox_options.add_argument("--start-maximized")
+        options = webdriver.FirefoxOptions()
         if headless:
-            firefox_options.add_argument(f"--width={width}")
-            firefox_options.add_argument(f"--height={height}")
-            firefox_options.headless = True
-        driver = webdriver.Firefox(options=firefox_options)
+            options.add_argument(f"--width={width}")
+            options.add_argument(f"--height={height}")
+            options.add_argument("--headless")
+        else:
+            options.add_argument("--start-maximized")
 
     else:
         raise ValueError("Unsupported browser name " + browser)
+
+    if grid_url:
+        driver = webdriver.Remote(command_executor=grid_url, options=options)
+    else:
+        if browser == "chrome":
+            driver = webdriver.Chrome(options=options)
+        elif browser == "edge":
+            driver = webdriver.Edge(options=options)
+        elif browser == "firefox":
+            driver = webdriver.Firefox(options=options)
+
     return driver
+
+
+def capture_screenshot(driver: WebDriver, screenshot_name: str) -> str:
+    time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    screenshot_path = os.path.join(
+        SCREENSHOTS_DIR, f"{screenshot_name}_{time_stamp}.png")
+
+    browser = driver.capabilities['browserName'].lower()
+    if browser == "firefox":
+        driver.save_full_page_screenshot(screenshot_path)
+        screenshot_base64 = driver.get_full_page_screenshot_as_base64()
+    else:
+        metrics = driver.execute_cdp_cmd("Page.getLayoutMetrics", {})
+        width = metrics["contentSize"]["width"]
+        height = metrics["contentSize"]["height"]
+        
+        # Override viewport
+        driver.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
+            "mobile": False,
+            "width": width,
+            "height": height,
+            "deviceScaleFactor": 1,
+        })
+
+       # Take full-page screenshot
+        screenshot = driver.execute_cdp_cmd("Page.captureScreenshot", {
+            "format": "png",
+            "clip": {
+                "x": 0,
+                "y": 0,
+                "width": width,
+                "height": height,
+                "scale": 1,
+            }
+        })
+        screenshot_base64 = screenshot['data']
+        # Save to file
+        with open(screenshot_path, "wb") as f:
+            f.write(base64.b64decode(screenshot["data"]))
+        driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
+
+    logger.info("Screenshot saved at Location : %s", screenshot_path)
+
+    return screenshot_base64
 
 
 class WebDriverOps:
