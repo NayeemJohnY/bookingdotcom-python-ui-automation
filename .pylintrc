@@ -1,0 +1,10 @@
+[DESIGN]
+max-args=10
+max-positional-arguments=10
+
+[MESSAGES CONTROL]
+disable=wildcard-import,unused-wildcard-import
+
+[FORMAT]
+max-line-length=130
+

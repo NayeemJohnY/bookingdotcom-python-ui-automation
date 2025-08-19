@@ -1,0 +1,11 @@
+stage:
+  url: https://booking.com
+  browser: chrome
+  headless: False
+  timeout: 60
+
+prod:
+  url: https://booking.com
+  browser: chrome
+  headless: False
+  timeout: 90

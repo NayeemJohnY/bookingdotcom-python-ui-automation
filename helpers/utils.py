@@ -1,6 +1,6 @@
-
-from datetime import datetime
+"""Utils Module"""
 import re
+from datetime import datetime
 
 
 def format_datetime(datetime_obj: datetime, format_pattern="%Y-%m-%d"):
@@ -37,5 +37,5 @@ def get_number_from_text(text):
 
     Returns:
         int: Number from text 
-    """    
+    """
     return int(re.sub("[^0-9]", "", text))

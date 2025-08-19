@@ -1,12 +1,13 @@
 """Home Page Test"""
 
 from pages.home_page import HomePage
-from tests.BaseTest import BaseTest
 from pages.search_results_page import SearchResultsPage
+from tests.base_test import BaseTest
 
 
 class TestBookingHotels(BaseTest):
     """Booking Hotels Test Class"""
+
     homepage: HomePage
     search_results_page: SearchResultsPage
 
@@ -15,15 +16,22 @@ class TestBookingHotels(BaseTest):
         self.homepage = HomePage(self.webdriver_ops)
         self.homepage.verify_home_page()
         search_request = {
-            'destination': "Chennai, Tamil Nadu, India", "dest_search": "Chennai",
-            "adults": 4, "children": 1, "rooms": 1, "children_ages": [10]
+            "destination": "Chennai, Tamil Nadu, India",
+            "dest_search": "Chennai",
+            "adults": 4,
+            "children": 1,
+            "rooms": 1,
+            "children_ages": [10],
+            "currency": "INR",
         }
         self.search_results_page = self.homepage.search_hotels(search_request)
         self.search_results_page.verify_search_results(search_request)
         filter_data = {
-            'Review score': "Very Good: 8+", "Property rating": "3 stars",
-            'Reservation policy': "Free cancellation", 'Your budget (per night)': 5000
+            "Property rating": "3 stars",
+            "Reservation policy": "Free cancellation",
+            "Your budget (per night)": 5000,
         }
         self.search_results_page.apply_filters(filter_data)
         self.search_results_page.verify_properties_for_applied_filter(
-            search_request, filter_data)
+            search_request, filter_data
+        )
