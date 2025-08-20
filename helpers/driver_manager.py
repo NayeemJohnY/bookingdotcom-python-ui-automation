@@ -21,7 +21,7 @@ from locators.home_page_locators import dismiss_sign_in_popup_button
 
 logger = logging.getLogger(__name__)
 
-SCREENSHOTS_DIR = os.path.join("test_results", "screenshots")
+SCREENSHOTS_DIR = os.path.join("test-results", "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
 
@@ -165,6 +165,7 @@ class WebDriverOps:
     @staticmethod
     def handle_sign_in_popup(func):
         """Decorator to Handle Sign In Pop up"""
+
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
 
