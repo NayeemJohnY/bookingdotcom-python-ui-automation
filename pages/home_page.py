@@ -76,7 +76,8 @@ class HomePage:
             search_request["destination"],
         )
         self.select_check_in_out_date(search_request)
-        self.fill_occupancy_detail(search_request)
+        # self.fill_occupancy_detail(search_request)
+        self.webdriver_ops.click(generic_text_locator, "Search Button", "Search")
         return SearchResultsPage(self.webdriver_ops)
 
     def select_check_in_out_date(self, search_request):
@@ -159,7 +160,6 @@ class HomePage:
 
         search_request["duration_and_members"] = ", ".join(parts)
         # endregion
-        self.webdriver_ops.click(generic_text_locator, "Search Button", "Search")
 
     def update_occupant_detail(self, occupant_entity, occupant_count):
         """Update Occupant details
