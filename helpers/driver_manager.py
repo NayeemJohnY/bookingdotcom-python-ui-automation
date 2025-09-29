@@ -1,7 +1,7 @@
 """WebDriver Manager with Manage browser instance and manage actions on browser"""
 
 import base64
-import functools
+from fake_useragent import UserAgent
 import logging
 import os
 from datetime import datetime
@@ -17,7 +17,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
-from locators.home_page_locators import dismiss_sign_in_popup_button
 
 logger = logging.getLogger(__name__)
 
@@ -40,39 +39,42 @@ def add_chromium_options(options, width, height, headless):
 def get_driver(browser="chrome", headless=None, grid_url=None):
     """To create and get webdriver"""
     driver = None
-    browser = browser.lower()
-    width, height = 1920, 1080
+    # browser = browser.lower()
+    # width, height = 1920, 1080
+    # if browser == "chrome":
+    #     options = webdriver.ChromeOptions()
+    #     options.add_argument(
+    #         'user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"'
+    #     )
+    #     add_chromium_options(options, width, height, headless)
 
-    if browser == "chrome":
-        options = webdriver.ChromeOptions()
-        add_chromium_options(options, width, height, headless)
+    # elif browser == "edge":
+    #     options = webdriver.EdgeOptions()
+    #     add_chromium_options(options, width, height, headless)
 
-    elif browser == "edge":
-        options = webdriver.EdgeOptions()
-        add_chromium_options(options, width, height, headless)
+    # elif browser == "firefox":
+    #     options = webdriver.FirefoxOptions()
+    #     if headless:
+    #         options.add_argument(f"--width={width}")
+    #         options.add_argument(f"--height={height}")
+    #         options.add_argument("--headless")
+    #     else:
+    #         options.add_argument("--start-maximized")
 
-    elif browser == "firefox":
-        options = webdriver.FirefoxOptions()
-        if headless:
-            options.add_argument(f"--width={width}")
-            options.add_argument(f"--height={height}")
-            options.add_argument("--headless")
-        else:
-            options.add_argument("--start-maximized")
+    # else:
+    #     raise ValueError("Unsupported browser name " + browser)
+    # if grid_url:
+    #     driver = webdriver.Remote(command_executor=grid_url, options=options)
+    # else:
+    #     if browser == "chrome":
+    #         driver = webdriver.Chrome(options=options)
+    #     elif browser == "edge":
+    #         driver = webdriver.Edge(options=options)
+    #     elif browser == "firefox":
+    #         driver = webdriver.Firefox(options=options)
+    from common_test_foundation.lib.webdrivers import ChromeDriver, FirefoxDriver
 
-    else:
-        raise ValueError("Unsupported browser name " + browser)
-
-    if grid_url:
-        driver = webdriver.Remote(command_executor=grid_url, options=options)
-    else:
-        if browser == "chrome":
-            driver = webdriver.Chrome(options=options)
-        elif browser == "edge":
-            driver = webdriver.Edge(options=options)
-        elif browser == "firefox":
-            driver = webdriver.Firefox(options=options)
-
+    driver = FirefoxDriver(headless=headless)
     return driver
 
 
@@ -116,6 +118,7 @@ def capture_screenshot(driver: WebDriver, screenshot_name: str) -> str:
             "Page.captureScreenshot",
             {
                 "format": "png",
+                "quality": 60,
                 "clip": {
                     "x": 0,
                     "y": 0,
@@ -128,7 +131,7 @@ def capture_screenshot(driver: WebDriver, screenshot_name: str) -> str:
         screenshot_base64 = screenshot["data"]
         # Save to file
         with open(screenshot_path, "wb") as f:
-            f.write(base64.b64decode(screenshot["data"]))
+            f.write(base64.b64decode(screenshot_base64))
         driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
 
     logger.info("Screenshot saved at Location : %s", screenshot_path)
@@ -161,30 +164,6 @@ class WebDriverOps:
             TimeoutException : if page title is NOT contains the given title in a wait time.
         """
         self.wait.until(EC.title_contains(title), "Page title not contains given value")
-
-    @staticmethod
-    def handle_sign_in_popup(func):
-        """Decorator to Handle Sign In Pop up"""
-
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-
-            if not getattr(
-                self, "sign_in_popup_dismissed", False
-            ) and self.is_element_present(
-                dismiss_sign_in_popup_button, "Sign in Pop up dismiss Icon", wait_time=1
-            ):
-                element = self.wait_for_element_condition(
-                    dismiss_sign_in_popup_button,
-                    "Sign in Pop up dismiss Icon",
-                    EC.element_to_be_clickable,
-                )
-                element.click()
-                logger.info("Closed Sign In Popup")
-                self.sign_in_popup_dismissed = True  # Mark as dismissed
-            return func(self, *args, **kwargs)
-
-        return wrapper
 
     def get_element_name_locator(
         self,
@@ -294,7 +273,6 @@ class WebDriverOps:
         logger.info("Element %s is present", elem_name)
         return True
 
-    @handle_sign_in_popup
     def click(
         self,
         locator: Tuple[By, str],
@@ -319,7 +297,6 @@ class WebDriverOps:
         element.click()
         logger.info("Clicked on the %s", elem_name)
 
-    @handle_sign_in_popup
     def enter_text(
         self,
         locator: Tuple[By, str],
@@ -347,7 +324,6 @@ class WebDriverOps:
         element.send_keys(value)
         logger.info("Entered text %s in the %s", value, elem_name)
 
-    @handle_sign_in_popup
     def select_value_from_dropdown(
         self,
         locator,
@@ -404,7 +380,53 @@ class WebDriverOps:
         )
         return value
 
-    @handle_sign_in_popup
+    def scroll_into_view_and_click(
+        self,
+        locator,
+        elem_name: str,
+        replace_value: Union[str, List, Tuple] = None,
+        wait_time: float = None,
+    ):
+        """Scroll Into View to the element and click
+
+        Args:
+            locator (Tuple): Tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        """
+        self.execute_js_script_on_element(
+            "arguments[0].scrollIntoViewIfNeeded()",
+            locator,
+            elem_name,
+            replace_value,
+            wait_time,
+        )
+        self.click(locator, elem_name, replace_value, wait_time)
+
+    def scroll_into_view(
+        self,
+        locator,
+        elem_name: str,
+        replace_value: Union[str, List, Tuple] = None,
+        wait_time: float = None,
+    ):
+        """Scroll Into View to the element
+
+        Args:
+            locator (Tuple): Tuple with locator type and locator string.
+            elem_name (str): description of the element.
+            replace_value (str | list, optional): values to replace in the locator. Defaults to None.
+            wait_time (float, optional): custom wait time for the elements, Default driver default wait time.
+        """
+        self.execute_js_script_on_element(
+            "arguments[0].scrollIntoViewIfNeeded()",
+            locator,
+            elem_name,
+            replace_value,
+            wait_time,
+        )
+
     def click_on_element_by_offset(
         self,
         locator,

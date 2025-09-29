@@ -1,11 +1,11 @@
 stage:
-  url: https://booking.com
+  url: https://www.makemytrip.com
   browser: chrome
   headless: False
-  timeout: 60
+  timeout: 1130
 
 prod:
-  url: https://booking.com
+  url: https://www.makemytrip.com
   browser: chrome
   headless: False
-  timeout: 90
+  timeout: 1130

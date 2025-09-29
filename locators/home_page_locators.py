@@ -2,60 +2,46 @@
 
 from selenium.webdriver.common.by import By
 
-dismiss_sign_in_popup_button = (
-    By.XPATH,
-    '//*[@role="dialog"][descendant::*[text()="Sign in, save money"]]'
-    '/descendant::button[@aria-label="Dismiss sign-in info."]',
+login_popup_close_button = (
+    By.CSS_SELECTOR,
+    'section[data-cy="CommonModal_2"] span[data-cy="closeModal"]',
 )
 
-auto_complete_results = (
+header_menu = (By.XPATH, '//li[@data-cy="menu_{0}"][descendant::span[text()="{0}"]]')
+
+header_menu_active = (
     By.XPATH,
-    '//*[@id="autocomplete-results"][count(descendant::*[text()= "Trending destinations"])={}]',
+    header_menu[1] + '[descendant::span[contains(@class, "active")]]',
 )
 
-auto_complete_results_with_text = (
+check_in_out_date = (
     By.XPATH,
-    '//*[@id="autocomplete-results"]/descendant::*[text()="{}"]',
+    '//*[contains(@class, "DayPicker-Day") and @aria-label="{}"]',
 )
-
-destination_selected_value = (
-    By.XPATH,
-    '//*[@placeholder="Where are you going?" and @value="{}"]',
-)
-
-check_in_out_date = (By.XPATH, '//*[@data-date="{}"]')
 
 date_display_field = (
     By.XPATH,
-    '//*[@data-testid="date-display-field-{}" and text()="{}"]',
+    '//*[@data-cy="{}" and normalize-space()="{}"]',
 )
 
-occupancy_group_detail_button = (
+
+currency_lang_switcher = (
     By.XPATH,
-    '//*[contains(@id, "{}")]/preceding-sibling::*/button[{}]',
+    '//*[contains(@class, "CurrencyText")]',
 )
 
-occupancy_group_detail_value = (
+selected_currency_text = (
     By.XPATH,
-    '//*[contains(@id, "{}")]/preceding-sibling::*/span[text()="{}"]',
+    '//*[contains(@class, "CurrencyText")][text()="{}"]',
 )
 
-occupancy_group_detail_button_disabled = (
-    By.XPATH,
-    occupancy_group_detail_button[1] + "[@disabled]",
+currency_dropdown = (
+    By.CSS_SELECTOR,
+    '[data-testid="currency-dropdown"]',
 )
 
-kids_age_select_dropdown_with_index = (
+currency_dropdown_list_value = (
     By.XPATH,
-    '//*[@data-testid="kids-ages"]/descendant::*[@name="age"][{}]',
-)
-
-currency_picker_trigger = (
-    By.XPATH,
-    '//*[@data-testid="header-currency-picker-trigger"]',
-)
-
-currency_picker_selector = (
-    By.XPATH,
-    '//*[contains(@class, "CurrencyPicker_currency")][text()="{}"]',
+    '//*[@data-testid="dropdown-list-currency"]/descendant::*[contains(@class, "CurrencyOption")]'
+    '[descendant::text()="{}"]',
 )

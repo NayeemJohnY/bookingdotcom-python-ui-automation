@@ -1,4 +1,4 @@
-# TimeAndDate Test Automation Framework
+# MakeMyTrip Test Automation Framework
 
 ## Set up the environment for the Development
 
